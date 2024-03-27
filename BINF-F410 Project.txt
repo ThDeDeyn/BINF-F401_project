@@ -1,0 +1,29 @@
+[BINF-F410 Project]
+
+1. Written exam --> open book exam of 2 hours. 
+
+2. Project --> mini-research project evaluated from a written report, collective grade 
+Tissue morphology is a branch of pathology --> using microscopy 
+Microscopy has evolved a lot, still analysis of histopahological images have not. It is mostly driven by qualitative and subjective crieterias. 
+=> Huge obstacle to proper treatment bc depends on pathologist. 
+
+Our project: part of Canguilhem study 
+
+
+On reçoit: 
+des super-images histo (HQ) 
+des profils d'expression
+
+Q1 Clinical Variables 
+1. How are they distributed ? 
+2. Are they correlated ?
+3. Are some technical variables possibly confounding demographic/ health variables ? 
+Check slides for hint. 
+
+Q2 Clinical data vs: morphology 
+
+1. Compute systematically associations between clinical variables and morphological cluster counts. The purpose is to compare the magnitude of the associations of the different variables with morphology. 
+2. Discuss association with technical variables
+3. For non-technical variables, redo the analysis with adjustment for the confounding tech variables, if any is reported in Q2.2. Report and discuss significant associations. 
+
+==> Moyenne harmonique entre les 2. 

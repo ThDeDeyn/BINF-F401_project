@@ -1,0 +1,108 @@
+[Computational Methods for Genomics]
+
+ex: cancerous cells have a higher production rate than regular cells -> violate normalization hypothesis
+
+"Alignment is hte prerequisite for a wide range of investigations"
+
+--> Alternative splicing
+--> ...
+
+
+Thyroid metabolism 
+--> Some cancers acts on the matabolism -> cancer grows and stops metabolic function
+
+Problem of multiple comparisons in PubMed ? We we always find a link between cancer and a mod in genome since it is a very studied field. 
+
+Moderated t-stat: constant s0 prevents the t-stat from becoming too small when low variation genes are observed (sigma² = 0)
+
+"The number of samples needed to reliably detect diff expression is computable"
+--> Most of the studies reach a plateau with less than 10 / 30 samples
+
+
+[Summary of the course : 13-03]
+
+
+Functional Genomics is an extension of the central dogma; 
+
+Today: focus on histology, which will be the focus of our project. Obj is to reuse the transcriptome Gtex sample and histological images.  
+AI used, to see connections |b| gene expression and histological images. 
+
+- Thanks to the web, genomics formed a lot of available data
+  Several opportunities arose, due to the incredible amount of data. 
+  A single experiment produces up to 10e4 != values, enough to allow ID of trends, biases ==> led to normalisation 
+
+- Instead of looking for 1 gene, we can observe entire transcriptomes. 
+
+- In fct genomics litt, lots of biases such as training & validation set not properly separated
+
+- Importance of unbiased studies ==> as few hypothesis as possible (ex: of serum) 
+
+- Clustering approach, linear or not (graph clustering). Also using dimensions reducing algorithm
+
+-- Survival Analysis -- 
+Idea: Several tracks of time, 
+with cross representing death, machine breaking down 
+
+Kaplan-Meyer curve: goes down every death
+--> Above means better strength, better survival rate
+
+Integration along time help shows longer survival time, even if everyone dies (not in exam ? --> Only Kaplan Meyer Curve) 
+
+logrank test: assumes independent censoring --> Quite strong hypothesis made 
+(ex coming from H: people leaving are not diying more) 
+
+Cox regresion model: Asess the association of covariates
+
+-- Application : predicting breast cancer outcome -- 
+A tumor can cause cancer in the ~60 y.o but original mutation can be traced back in-utero
+1/8 women
+
+Previously: treatment was decided by dr. based on medical information 
+Perhaps not the best treatment --> introduction of personalised medicine
+
+Study 2003 sl. 40 Interesting bc transferable between cancers
+
+Idea sl. 48-49: Remove the effect caused by cell proliferation, common in all cancers. Differences lies elsewhere
+
+sl 52 play with oxygen as they did with serum
+
+dutch signature? 
+
+
+-- Failed research to better solutions -- 
+
+
+PCNA: markers of cells growth and division 
+GPS? 
+
+--> Super PCNA: signature defined as the ones the top 1% most correlated with PCNA 
+sl.9 cfr last week gene score --> shows high expression, high signal 
+
+meta-PCNA used to evaluate proliferation-related signal ==> can be used to remove it form the study. 
+
+sl.19 : takes the residuals == "Makes the line horizontal"
+--> remove the signature associated with meta-PCNA (proliferation)
+--> shows information obscured (2 greens dot, values was the same before residuals)
+
+sl.21 should be a - bc we substracted.
+sl.23 
+detection of real potentially prognostic variables, 
+after correction due to proliferation, classifier are not working anymore. 
+All those scores were recording the proliferation markers
+
+sl.24 --> Gros flex, il a démontré que pleins d'indices sont useless, mais mesure la prolifération. One paper had to be retracted, flex #2
+
+sl.26
+noir : tout les gènes 
+rouge : en ne prenant que les gènes liés au cancer du sein. 
+
+sl.30 --> tentative par l'absurde de montrer que tout profile peut marcher
+Prends des profils random, sans liens et montre que les tests montrent une différence statistiquement significative. Intérêt ? Pas suivi
+
+sl.36 --> Compare résultats avec des signatures random. Dans certains cas, la valeur observée n'est même pas dans les meilleurs 5%. 
+
+sl.40-44 skipped 
+
+
+
+
