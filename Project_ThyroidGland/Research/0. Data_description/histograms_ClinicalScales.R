@@ -156,4 +156,31 @@ for(var.x in clinical_numeric){
     print(plot)
     }  
 }
+
+    ## 2: DTHHRDY vs numeric
+
+comp_list = data.frame(var.x = character(0), var.y  = character(0),
+                       mean.x = numeric(0), mean.y = numeric(0),
+                       p = numeric(0))
+
+for(var.x in clinical_numeric){
+
+  eq = paste0(var.x, sep = " ~ ", "DTHHRDY")
+  aov = aov(eq, data = clinical_data)
+  
+  new_row = data.frame(var.x = var.x,
+                       var.y = "COHORT",
+                       mean.x = t.test$estimate[1],
+                       mean.y = t.test$estimate[2], 
+                       p = t.test$p.value)
+  
+  if(new_row$p < 0.05){
+    comp_list = rbind(comp_list, new_row)
+    plot = clinical_data %>% ggplot(aes(x = clinical_data[[var.x]], y = clinical_data[["COHORT"]])) +
+      geom_boxplot(outlier.color = "black") + 
+      xlab(var.x) +
+      theme_minimal()
+    print(plot)
+  }  
+}
 dev.off()
