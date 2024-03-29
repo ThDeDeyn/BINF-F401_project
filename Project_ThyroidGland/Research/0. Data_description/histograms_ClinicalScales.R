@@ -9,6 +9,9 @@ setwd("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland")
 
 clinical_data = read_tsv("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/clinical_data.tsv")
 
+clinical_data$DTHHRDY = as.factor(clinical_data$DTHHRDY)
+clinical_data$COHORT = as.factor(clinical_data$COHORT)
+
 ##
 # Setting the parameters used throughout the code
 ##
@@ -63,7 +66,7 @@ corrplot <- corrplot::corrplot(corr = cor, method = "number",
 dev.off()
 
 ## 
-# Performing third analysis: correlations within clinical_data  
+# Performing third analysis: correlations within clinical_data (numeric VS numeric)  
 ##
 
 highest_cor = cor
@@ -78,8 +81,11 @@ highest_cor[abs(cor) == 1] = 0
 
 cor_list = data.frame(var.x = character(0), var.y  = character(0),
                       cor = numeric(0), p = numeric(0))
+
+var.y_list = colnames(cor)
+
 for(var.x in colnames(cor)){
-  for(var.y in colnames(cor)){
+  for(var.y in var.y_list){
     if(var.x != var.y){
       new_row = data.frame(var.x = var.x,
                            var.y = var.y,
@@ -93,7 +99,9 @@ for(var.x in colnames(cor)){
       }                  
     }
   }
+  var.y_list = var.y_list[-which(var.y_list == var.x)]
 }
+
 
 cairo_pdf(paste(path_out, "clinical_point.pdf", sep = "/"), onefile = T)
 
@@ -101,8 +109,51 @@ for(comp in 1:nrow(cor_list)){
   var.x = cor_list[comp, "var.x"]
   var.y = cor_list[comp, "var.y"]
   
- clinical_data %>% ggplot() + geom_point(aes( x = clinical_data[[var.x]], y = clinical_data[[var.y]]))
+ plot = clinical_data %>% ggplot() + geom_point(aes( x = clinical_data[[var.x]], y = clinical_data[[var.y]], 
+                                                    alpha = 0.5), 
+                                                #position = position_jitter(w = 0, h = 0),  
+                                                col = '#DE2F56') + 
+                                      xlab(var.x) + ylab(var.y) + 
+                                      theme_minimal()
+ print(plot)
 }
 
 dev.off()
 
+## 
+# Performing fourth analysis: boxplots of values separated using most correlated (numeric VS factors)
+##
+
+clinical_numeric = clinical_numeric
+clinical_factor =  clinical_data %>% select(where(is.factor)) %>% colnames()
+
+    ## 1: COHORT vs numeric
+
+cairo_pdf(paste(path_out, "clinical_boxplots.pdf", sep = "/"), onefile = T)
+
+comp_list = data.frame(var.x = character(0), var.y  = character(0),
+                      mean.x = numeric(0), mean.y = numeric(0),
+                      p = numeric(0))
+
+for(var.x in clinical_numeric){
+  tmp.A = clinical_data %>% filter(clinical_data$COHORT == "Postmortem") %>% select(var.x)
+  tmp.B = clinical_data %>% filter(clinical_data$COHORT != "Postmortem") %>% select(var.x)
+  
+  t.test = t.test(tmp.A, tmp.B)
+  
+  new_row = data.frame(var.x = var.x,
+                       var.y = "COHORT",
+                       mean.x = t.test$estimate[1],
+                       mean.y = t.test$estimate[2], 
+                       p = t.test$p.value)
+  
+  if(new_row$p < 0.05){
+    comp_list = rbind(comp_list, new_row)
+    plot = clinical_data %>% ggplot(aes(x = clinical_data[[var.x]], y = clinical_data[["COHORT"]])) +
+      geom_boxplot(outlier.color = "black") + 
+      xlab(var.x) +
+      theme_minimal()
+    print(plot)
+    }  
+}
+dev.off()
