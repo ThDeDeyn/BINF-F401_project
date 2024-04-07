@@ -9,8 +9,12 @@ setwd("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland")
 
 clinical_data = read_tsv("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/clinical_data.tsv")
 
+
+#clinical_data$SEX = as.factor(clinical_data$SEX)
 clinical_data$DTHHRDY = as.factor(clinical_data$DTHHRDY)
 clinical_data$COHORT = as.factor(clinical_data$COHORT)
+
+clinical_data$DTHVNT[clinical_data$DTHVNT == 99] = NA
 
 ##
 # Setting the parameters used throughout the code
@@ -53,7 +57,7 @@ cor = cor(clinical_data %>% select(clinical_numeric), use = "pairwise.complete.o
 
 Mtest = cor.mtest(clinical_data %>% select(clinical_numeric),
                   conf.level = p_value)
-cor[Mtest$p > 1 - p_value] = 0
+cor[Mtest$p > p_value] = 0
 
 
 cairo_pdf(paste(path_out, "clinical_correlations.pdf", sep = "/"), onefile = T)
@@ -149,7 +153,7 @@ for(var.x in clinical_numeric){
   
   if(new_row$p < 0.05){
     comp_list = rbind(comp_list, new_row)
-    plot = clinical_data %>% ggplot(aes(x = clinical_data[[var.x]], y = clinical_data[["COHORT"]])) +
+    plot = clinical_data %>% ggplot(aes(x = clinical_data[[var.x]], y = clinical_data[["COHORT"]], fill = clinical_data[["COHORT"]])) +
       geom_boxplot(outlier.color = "black") + 
       xlab(var.x) +
       theme_minimal()
@@ -165,22 +169,21 @@ comp_list = data.frame(var.x = character(0), var.y  = character(0),
 
 for(var.x in clinical_numeric){
 
-  eq = paste0(var.x, sep = " ~ ", "DTHHRDY")
+  eq = reformulate(var.x, response = "DTHHRDY")
+  #eq = paste0(var.x, sep = " ~ ", "DTHHRDY")
   aov = aov(eq, data = clinical_data)
-  
+  aov$coefficients
   new_row = data.frame(var.x = var.x,
                        var.y = "COHORT",
                        mean.x = t.test$estimate[1],
                        mean.y = t.test$estimate[2], 
                        p = t.test$p.value)
   
-  if(new_row$p < 0.05){
     comp_list = rbind(comp_list, new_row)
-    plot = clinical_data %>% ggplot(aes(x = clinical_data[[var.x]], y = clinical_data[["COHORT"]])) +
+    plot = clinical_data %>% ggplot(aes(x = clinical_data[[var.x]], y = clinical_data[["DTHHRDY"]], fill = clinical_data[["DTHHRDY"]])) +
       geom_boxplot(outlier.color = "black") + 
       xlab(var.x) +
       theme_minimal()
     print(plot)
-  }  
 }
 dev.off()
