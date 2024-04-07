@@ -187,3 +187,87 @@ for(var.x in clinical_numeric){
     print(plot)
 }
 dev.off()
+
+## 
+# Performing fifth analysis: PCA
+##
+
+library(caret)
+library(FactoMineR)
+
+
+# A: scaling numeric df
+
+cairo_pdf(paste(path_out, "clinical_PCA_1.pdf", sep = "/"), onefile = T)
+
+pca_df = clinical_data %>% dplyr::select(clinical_numeric)
+pca_df = as.data.frame(scale(pca_df) )
+
+PCA = PCA(pca_df, graph = TRUE)
+
+eigenvalues = PCA$eig
+barplot(eigenvalues[, 2], names.arg=1:nrow(eigenvalues), 
+        main = "Variances",
+        xlab = "Principal Components",
+        ylab = "Percentage of variances",
+        col ="steelblue")
+# Add connected line segments to the plot
+lines(x = 1:nrow(eigenvalues), eigenvalues[, 2], 
+      type="b", pch=19, col = "red")
+
+cumul.eigenvalues = cumsum(eigenvalues[, 2])
+barplot(cumul.eigenvalues, names.arg=1:nrow(eigenvalues), 
+        main = "Cumulative Explained Variance",
+        xlab = "Principal Components",
+        ylab = "Percentage of variances",
+        col ="steelblue")
+lines(x = 1:nrow(eigenvalues), cumul.eigenvalues, 
+      type="b", pch=19, col = "red")
+
+dev.off()
+
+## 
+# Performing fifth analysis: MFA (Multiple Factors Analysis)
+##
+library("factoextra")
+
+cairo_pdf(paste(path_out, "clinical_MFA_1.pdf", sep = "/"), onefile = T)
+
+#lapply(mfa_df, function(var) class(var))
+mfa_df = clinical_data %>% select(-c("IMGURL", "SUBJID","SMPTHNTS"), -matches("SMPLID"))
+#mfa_df$SEX = as.factor(mfa_df$SEX)
+
+#mfa_df %>% colnames()
+mfa_df <- mfa_df[, c(  "SEX",     "AGE",     "HGHT",    "WGHT",    "BMI",     "TRISCHD", "DTHVNT",  "DTHHRDY", "COHORT")]
+
+group.name = c("patients", "death_numeric", "death_factor" )
+MFA = MFA(mfa_df, 
+          group = c(5, 2,2), 
+          type = c("c","c","n"),
+          name.group = group.name)
+
+
+# Study the eigenvalues
+eigenvalues = MFA$eig
+barplot(eigenvalues[, 2], names.arg=1:nrow(eigenvalues), 
+        main = "Variances",
+        xlab = "Principal Components",
+        ylab = "Percentage of variances",
+        col ="steelblue")
+# Add connected line segments to the plot
+lines(x = 1:nrow(eigenvalues), eigenvalues[, 2], 
+      type="b", pch=19, col = "red")
+
+cumul.eigenvalues = cumsum(eigenvalues[, 2])
+barplot(cumul.eigenvalues, names.arg=1:nrow(eigenvalues), 
+        main = "Cumulative Explained Variance",
+        xlab = "Principal Components",
+        ylab = "Percentage of variances",
+        col ="steelblue")
+lines(x = 1:nrow(eigenvalues), cumul.eigenvalues, 
+      type="b", pch=19, col = "red")
+
+#Study the contributions
+fviz_mfa_var(MFA, "group")
+
+dev.off()
