@@ -1,0 +1,171 @@
+---
+title: "BINF-F401"
+output: html_document
+date: "2024-04-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE}
+library(tidyverse)
+library(corrplot)
+library(grid)
+library(gridExtra)
+
+```
+
+# BINF-F401 project (R Markdown)
+
+The task assigned was to study the RNA expression of a set of patients.
+
+First, let's set the parameters used throughout the scripts.
+
+```{r}
+  p_value = .05
+```
+
+## Description of the clinical_scale dataframe
+
+The clinical scale dataframe gather the information surrounding the patients included in the study. Some variables are related to the patient's physical condition (Age, Sex, Height and Weight), some are related to its death condition (On ventilator or not, type of death) and finally some are related to the cell tissue removal (ischemic time, origin of the cell: organ donor or death in hospital).
+
+```{r, echo = FALSE}
+setwd("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland")
+
+clinical_data = read_tsv("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/clinical_data.tsv")
+
+clinical_data$DTHHRDY = as.factor(clinical_data$DTHHRDY)
+clinical_data$COHORT = as.factor(clinical_data$COHORT)
+
+clinical_data$DTHVNT[clinical_data$DTHVNT == 99] = NA
+
+clinical_class <- sapply(clinical_data, class)
+clinical_numeric =  clinical_data %>% select(where(is.numeric)) %>% colnames()
+```
+
+### Distribution of the numerical variables
+
+```{r, echo = FALSE}
+
+clin_num = clinical_data %>% dplyr::select("AGE", "HGHT", "WGHT", "BMI", "TRISCHD")
+
+for(var in clin_num %>% colnames()){
+  hist = clinical_data %>% ggplot() + 
+    geom_histogram(aes(x = clinical_data[[var]], fill = "#DE2F56"), bins = 20) + 
+    ggtitle(paste("Histogram of ", var)) + 
+    labs( x = var, y = "Count") +
+    guides(fill = "none") +
+    theme_minimal()
+      
+  sum = summary(clin_num[[var]])
+  sum = sum[c(4,1,6)]
+  
+  texts = c()
+  i = 1
+  for(name in names(sum)){
+     texts[i] = paste0(name,sep = " ", round(sum[i], digits = 2), "\n")
+     i = i + 1
+  }
+  
+  grid.arrange(hist, textGrob(paste(texts, collapse = " ")), ncol = 2 )
+}
+```
+
+### Distribution of the binary variables
+
+```{r, echo = FALSE}
+
+clin_bin = clinical_data %>% dplyr::select("SEX", "COHORT", "DTHVNT", "DTHHRDY")
+
+
+clin_bin$SEX = as.factor(clinical_data$SEX)
+clin_bin$COHORT = as.factor(clinical_data$COHORT)
+clin_bin$DTHVNT = as.factor(clinical_data$DTHVNT)
+clin_bin$DTHHRDY = as.factor(clinical_data$DTHHRDY)
+
+for(var in clin_bin %>% colnames()){
+  hist = clin_bin %>% ggplot() + 
+    geom_bar(aes(x = clin_bin[[var]], fill = clin_bin[[var]])) + 
+    ggtitle(paste("Histogram of ", var)) + 
+    labs( x = var, y = "Count", fill = NULL) +
+    theme_minimal()
+      
+  names = levels(clin_bin[[var]])
+  
+  texts = c()
+  i = 1
+  for(name in names){
+     texts[i] = paste0(name,":",sep = " ", sum( clin_bin[[var]] == name ,na.rm = TRUE), "\n")
+     i = i + 1
+  }
+  
+  grid.arrange(hist, textGrob(paste(texts, collapse = " ")), ncol = 2, widths = c(2,1))
+}
+```
+
+### Correlations between numerical variables
+```{r, echo = FALSE}
+cor = cor(clinical_data %>% select(clinical_numeric), use = "pairwise.complete.obs")
+
+Mtest = cor.mtest(clinical_data %>% select(clinical_numeric),
+                  conf.level = p_value)
+cor[Mtest$p > p_value] = 0
+
+corrplot <- corrplot::corrplot(corr = cor, method = "number",
+                              diag = FALSE, 
+                              tl.cex = .75, tl.col = "black",
+                              mar = c(0,0,1,0), type = 'upper',
+                              col = colorRampPalette(c('#DE2F56','white','#0B65F9'))(100))
+
+```
+
+```{r, echo = FALSE}
+highest_cor = cor
+# Keep high correlations
+highest_cor[abs(cor) < 0.2] = 0
+
+# Keep significant correlations
+highest_cor[(Mtest$p) > 0.05] = 0
+
+# Remove self correlations
+highest_cor[abs(cor) == 1] = 0
+
+cor_list = data.frame(var.x = character(0), var.y  = character(0),
+                      cor = numeric(0), p = numeric(0))
+
+var.y_list = colnames(cor)
+
+for(var.x in colnames(cor)){
+  for(var.y in var.y_list){
+    if(var.x != var.y){
+      new_row = data.frame(var.x = var.x,
+                           var.y = var.y,
+                           cor = cor(clinical_data[[var.x]], clinical_data[[var.y]],
+                                     use = "pairwise.complete.obs"), 
+                           p = cor.test(clinical_data[[var.x]], clinical_data[[var.y]],
+                                     use = "pairwise.complete.obs")$p.value)
+      
+      if(new_row$p < 0.05 & abs(new_row$cor) > 0.15){
+        cor_list = rbind(cor_list, new_row)
+      }                  
+    }
+  }
+  var.y_list = var.y_list[-which(var.y_list == var.x)]
+}
+
+for(comp in 1:nrow(cor_list)){
+  var.x = cor_list[comp, "var.x"]
+  var.y = cor_list[comp, "var.y"]
+  
+ plot = clinical_data %>% ggplot() + geom_point(aes( x = clinical_data[[var.x]], y = clinical_data[[var.y]], 
+                                                    alpha = 0.5), 
+                                                #position = position_jitter(w = 0, h = 0),  
+                                                col = '#DE2F56') + 
+                                      xlab(var.x) + ylab(var.y) +
+                                      guides(alpha = "none")+
+                                      theme_minimal()
+ print(plot)
+}
+
+```

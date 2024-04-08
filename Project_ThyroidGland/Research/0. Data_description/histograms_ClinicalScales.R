@@ -6,7 +6,6 @@ library(corrplot)
 ##
 
 setwd("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland")
-
 clinical_data = read_tsv("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/clinical_data.tsv")
 
 
