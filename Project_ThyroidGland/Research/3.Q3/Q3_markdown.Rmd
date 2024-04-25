@@ -1,0 +1,188 @@
+---
+title: "BINF-F401"
+output: pdf_document
+date: "2024-04-25"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE}
+library(tidyverse)
+library(corrplot)
+library(grid)
+library(gridExtra)
+library(caret)
+library(FactoMineR)
+library("factoextra")
+library(backports)
+library(DESeq2)
+
+```
+
+# BINF-F401 project (R Markdown)
+
+The task assigned was to study the RNA expression of a set of patients. First, let's set the parameters used throughout the scripts.
+
+```{r}
+  p_value = .05
+```
+
+## Morphology vs Gene Expression
+
+### 1. Report:
+
+-   The number of significant down-regulated and up-regulated genes associated with each morphological cluster
+-   The 10 most significant up-regulated genes
+
+```{r, echo = FALSE}
+morphological_counts = read_tsv("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/morphological_counts_lunit_dino.tsv")
+coldata = morphological_counts
+RNA_read = read_tsv("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/RNA_read_counts.tsv")
+
+```
+
+### -----------------------------------------------------------------------------------------------------
+
+### Step 1: Filtering transcripts 
+Objective is to reduce the amount of transcript. Two things could be sought for when removing transcripts: 
+A. Transcripts with low expression
+B. Transcripts with low variability (estimated using the the median average deviation)
+```{r, echo = FALSE}
+
+rownames(RNA_read) = RNA_read$Name 
+df = RNA_read %>% select_if(is.numeric)
+rownames(df) = RNA_read$Name 
+
+```
+
+```{r, echo = FALSE}
+
+maxs = apply(df,1, function(var) max(var, na.rm = TRUE))
+
+hist(log10(maxs + 1))
+
+
+```
+
+```{r, echo = FALSE}
+
+median = apply(df,1, function(var) median(var, na.rm = TRUE))
+
+hist(log10(median + 1))
+hist(log10(median))
+
+```
+
+```{r, echo = FALSE}
+
+med_avg = apply(df,1, function(var) mad(var, na.rm = TRUE))
+
+hist(log10(med_avg + 1))
+hist(log10(med_avg))
+
+```
+
+```{r, echo = FALSE}
+
+high_mad = med_avg > 10**1.5
+high_expr = maxs > 10**2.5
+high_median = median > 10**2
+
+```
+
+Filtering steps:
+
+```{r, echo = FALSE}
+
+cond = (high_mad & high_expr)
+print(sum(cond))
+cts = df[cond, ]
+rownames(cts) = rownames(df)[cond]
+
+rownames(coldata) = coldata$SMPLID
+#Checking if coldata is fine: 
+all(colnames(cts) %in% rownames(coldata))
+#Checking if same order: 
+all(colnames(cts) == rownames(coldata))
+
+```
+
+
+
+```{r, echo = FALSE}
+
+dds <- DESeqDataSetFromMatrix(countData = cts,
+                              colData = coldata,
+                              design = ~ Mophological.cluster.G4_0)
+
+```
+```{r, echo = FALSE}
+
+dds <- DESeq(dds)
+
+```
+
+```{r, echo = FALSE}
+
+res = results(dds)
+
+```
+### Select significant regulations
+
+```{r, echo = FALSE}
+
+signif = res
+#Some values are NA: 
+signif$padj[is.na(signif$padj)] = 0.555555555555
+signif = signif[signif$padj < p_value,]
+
+```
+
+
+### Select up-regulations
+
+```{r, echo = FALSE}
+
+upreg = signif
+#Some values are NA: 
+upreg$pvalue[is.na(upreg$log2FoldChange)] = 0
+upreg = upreg[upreg$log2FoldChange > 0,]
+
+```
+
+```{r, echo = FALSE}
+
+hist(upreg$log2FoldChange)
+hist(log10(upreg$log2FoldChange + 1))
+
+```
+
+### Order the dataframe 
+Objective is to have the max values at the top
+
+```{r, echo = FALSE}
+
+max(upreg$log2FoldChange)
+upreg = upreg[order(-upreg$log2FoldChange),]
+
+
+```
+
+The ten most significant up-regulated genes are: 
+
+```{r, echo = FALSE}
+
+upreg[1:10,]
+summary(res)
+summary(upreg)
+
+```
+```{r, echo = FALSE}
+
+plotMA(res)
+
+plotMA(upreg)
+
+```

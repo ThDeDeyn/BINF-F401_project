@@ -1,6 +1,6 @@
 ---
 title: "BINF-F401"
-output: html_document
+output: pdf_document
 date: "2024-04-08"
 ---
 
@@ -16,6 +16,7 @@ library(gridExtra)
 library(caret)
 library(FactoMineR)
 library("factoextra")
+library(backports)
 
 ```
 
