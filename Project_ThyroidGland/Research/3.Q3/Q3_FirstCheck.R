@@ -27,3 +27,6 @@ pos.max = which.max(med_avg)
 hist(t(df[pos.max ,])[,1])
 hist(log10(t(df[pos.max ,])[,1]))
 
+log10med = log10(med_avg) 
+otsu(log10med, range = c(min(log10med, na.rm = TRUE), max(log10med, na.rm = TRUE)), levels = 256)
+

@@ -14,10 +14,9 @@ library(corrplot)
 library(grid)
 library(gridExtra)
 library(caret)
-library(FactoMineR)
-library("factoextra")
 library(backports)
 library(DESeq2)
+library(EBImage)
 
 ```
 
@@ -27,6 +26,7 @@ The task assigned was to study the RNA expression of a set of patients. First, l
 
 ```{r}
   p_value = .05
+  discrete = 20
 ```
 
 ## Morphology vs Gene Expression
@@ -41,19 +41,37 @@ morphological_counts = read_tsv("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_T
 coldata = morphological_counts
 RNA_read = read_tsv("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/RNA_read_counts.tsv")
 
+clinical = read_tsv("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/clinical_data.tsv")
+coldata = coldata %>% left_join(by = "SMPLID", y = clinical)
+
 ```
 
 ### -----------------------------------------------------------------------------------------------------
 
-### Step 1: Filtering transcripts 
-Objective is to reduce the amount of transcript. Two things could be sought for when removing transcripts: 
-A. Transcripts with low expression
-B. Transcripts with low variability (estimated using the the median average deviation)
+### Step 1: Filtering transcripts
+
+Objective is to reduce the amount of transcript. Two things could be sought for when removing transcripts: A. Transcripts with low expression B. Transcripts with low variability (estimated using the the median average deviation)
+
 ```{r, echo = FALSE}
 
 rownames(RNA_read) = RNA_read$Name 
 df = RNA_read %>% select_if(is.numeric)
 rownames(df) = RNA_read$Name 
+
+otsu_modified = function(array){
+  # Find the 5% largest values, and remove them (outliers)
+  array <- sort(array)
+  array <- array[1:(length(array) - 0.05 * length(array))]
+  
+  # Discretise data for otsu method
+  
+  
+  # Compute the threshold
+  return (otsu(log10(as.matrix(array, nrow = 2) + 1), 
+            range = c(min(array, na.rm = TRUE), max(array, na.rm = TRUE)),
+                      levels = discrete) )
+  
+}
 
 ```
 
@@ -61,6 +79,7 @@ rownames(df) = RNA_read$Name
 
 maxs = apply(df,1, function(var) max(var, na.rm = TRUE))
 
+hist(maxs)
 hist(log10(maxs + 1))
 
 
@@ -69,26 +88,25 @@ hist(log10(maxs + 1))
 ```{r, echo = FALSE}
 
 median = apply(df,1, function(var) median(var, na.rm = TRUE))
+thr_median = otsu_modified(median)
 
-hist(log10(median + 1))
-hist(log10(median))
-
+hist(log10(median + 1), breaks = discrete)
+abline(v = log10(tmp + 1), col = "red")
 ```
 
 ```{r, echo = FALSE}
 
 med_avg = apply(df,1, function(var) mad(var, na.rm = TRUE))
+thr_avg = otsu_modified(med_avg)
 
-hist(log10(med_avg + 1))
-hist(log10(med_avg))
-
+hist(log10(med_avg + 1), breaks = discrete) 
+abline(v = log10(tmp + 1), col = "red")
 ```
 
 ```{r, echo = FALSE}
 
-high_mad = med_avg > 10**1.5
-high_expr = maxs > 10**2.5
-high_median = median > 10**2
+high_mad = med_avg > thr_avg
+high_expr = median > thr_median 
 
 ```
 
@@ -109,80 +127,66 @@ all(colnames(cts) == rownames(coldata))
 
 ```
 
-
+## Perfomring DESEq2 analysis
 
 ```{r, echo = FALSE}
 
-dds <- DESeqDataSetFromMatrix(countData = cts,
+varname = c("Mophological.cluster.G4_0" )
+covar = c("Mophological.cluster.G4_23", "AGE")
+
+eq_cov = paste0(covar, collapse = " + ")
+res = c()
+
+
+
+for(var in varname){
+  print(var)
+  start = paste("~", var )
+  dds <- DESeqDataSetFromMatrix(countData = cts,
                               colData = coldata,
-                              design = ~ Mophological.cluster.G4_0)
+                              design = as.formula(paste(start, eq_cov, sep =" + ")))
+  
+  dds <- DESeq(dds)
+  res[var] = list(results(dds, alpha = p_value))
+}
+
+
 
 ```
-```{r, echo = FALSE}
 
-dds <- DESeq(dds)
-
-```
-
-```{r, echo = FALSE}
-
-res = results(dds)
-
-```
-### Select significant regulations
+### Select variable of interests
 
 ```{r, echo = FALSE}
-
-signif = res
-#Some values are NA: 
-signif$padj[is.na(signif$padj)] = 0.555555555555
-signif = signif[signif$padj < p_value,]
-
-```
-
-
-### Select up-regulations
-
-```{r, echo = FALSE}
-
-upreg = signif
-#Some values are NA: 
-upreg$pvalue[is.na(upreg$log2FoldChange)] = 0
-upreg = upreg[upreg$log2FoldChange > 0,]
-
-```
-
-```{r, echo = FALSE}
-
-hist(upreg$log2FoldChange)
-hist(log10(upreg$log2FoldChange + 1))
-
-```
-
-### Order the dataframe 
-Objective is to have the max values at the top
-
-```{r, echo = FALSE}
-
-max(upreg$log2FoldChange)
-upreg = upreg[order(-upreg$log2FoldChange),]
+for(var in varname){
+  
+  # Select significant regulations
+  signif = res[[var]]
+  #Some values are NA: 
+  signif$padj[is.na(signif$padj)] = 0.555555555555
+  signif = signif[signif$padj < p_value,]
+  
+  #Select up-regulations
+  upreg = signif
+  #Some values are NA: 
+  upreg$pvalue[is.na(upreg$log2FoldChange)] = 0
+  upreg = upreg[upreg$log2FoldChange > 0,]
+  
+  hist(upreg$log2FoldChange, main = paste("log2FoldChange of", sep = " ", var))
+  
+  # Order the dataframe, objective is to have the max values at the top
+  max(upreg$log2FoldChange)
+  upreg = upreg[order(-upreg$log2FoldChange),]
+  
+  print("The ten most significant up-regulated genes are:")
+  upreg[1:10,]
+  summary(res[[var]])
+  summary(upreg)
+  
+  plotMA(res[[var]], main = paste("plotMA of", sep = " ", var))
+  plotMA(upreg, , main = paste("plotMA of up-regulated in", sep = " ", var))
+}
 
 
 ```
 
-The ten most significant up-regulated genes are: 
 
-```{r, echo = FALSE}
-
-upreg[1:10,]
-summary(res)
-summary(upreg)
-
-```
-```{r, echo = FALSE}
-
-plotMA(res)
-
-plotMA(upreg)
-
-```
