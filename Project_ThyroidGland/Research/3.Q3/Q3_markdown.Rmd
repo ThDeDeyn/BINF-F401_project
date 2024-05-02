@@ -91,7 +91,7 @@ median = apply(df,1, function(var) median(var, na.rm = TRUE))
 thr_median = otsu_modified(median)
 
 hist(log10(median + 1), breaks = discrete)
-abline(v = log10(tmp + 1), col = "red")
+abline(v = log10(thr_median + 1), col = "red")
 ```
 
 ```{r, echo = FALSE}
@@ -100,7 +100,7 @@ med_avg = apply(df,1, function(var) mad(var, na.rm = TRUE))
 thr_avg = otsu_modified(med_avg)
 
 hist(log10(med_avg + 1), breaks = discrete) 
-abline(v = log10(tmp + 1), col = "red")
+abline(v = log10(thr_avg + 1), col = "red")
 ```
 
 ```{r, echo = FALSE}
@@ -131,7 +131,9 @@ all(colnames(cts) == rownames(coldata))
 
 ```{r, echo = FALSE}
 
-varname = c("Mophological.cluster.G4_0" )
+#varname = c("Mophological.cluster.G4_0", "Mophological.cluster.G4_1" )
+varname = morphological_counts %>% select(-SMPLID) %>% colnames()
+
 covar = c("Mophological.cluster.G4_23", "AGE")
 
 eq_cov = paste0(covar, collapse = " + ")
@@ -153,11 +155,17 @@ for(var in varname){
 
 
 ```
-
+12:32 (start) 
+13:26 (end)
 ### Select variable of interests
 
 ```{r, echo = FALSE}
+#saveRDS(res, file ="D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/res_AGE_MC23")
+
+top10iN32 = c()
+
 for(var in varname){
+  print(var)
   
   # Select significant regulations
   signif = res[[var]]
@@ -178,7 +186,11 @@ for(var in varname){
   upreg = upreg[order(-upreg$log2FoldChange),]
   
   print("The ten most significant up-regulated genes are:")
-  upreg[1:10,]
+  
+  tmp = upreg[1:10,]
+  tmp$cluster = var
+  top10iN32 = rbind(top10iN32, tmp)
+  
   summary(res[[var]])
   summary(upreg)
   
@@ -186,7 +198,22 @@ for(var in varname){
   plotMA(upreg, , main = paste("plotMA of up-regulated in", sep = " ", var))
 }
 
-
 ```
 
+### Selection of the 10 most up-regulated genes
 
+```{r, echo = FALSE}
+
+top10iN32 = top10iN32[order(-top10iN32$log2FoldChange),]
+top10iN32$gene = rownames(top10iN32)
+
+top10 = c()
+top10 = rbind(top10, top10iN32[1, ])
+
+for (r in 2:nrow(top10iN32)){
+ if(! (top10iN32[r, ]$gene %in% top10$gene)){
+   top10 = rbind(top10, top10iN32[r, ])
+ }
+}
+
+```
