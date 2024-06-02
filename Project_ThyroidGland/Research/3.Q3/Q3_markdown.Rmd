@@ -45,6 +45,8 @@ RNA_read = read_tsv("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/
 clinical = read_tsv("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/clinical_data.tsv")
 coldata = coldata %>% left_join(by = "SMPLID", y = clinical)
 
+coldata$Mophological.cluster.G4_23 = scale(coldata$Mophological.cluster.G4_23)[,1]
+
 ```
 
 ### -----------------------------------------------------------------------------------------------------
@@ -142,28 +144,29 @@ covar = c("Mophological.cluster.G4_23")
 eq_cov = paste0(covar, collapse = " + ")
 res = c()
 
-
-
+print('Starting....')
+print(Sys.time())
 for(var in varname){
-  print(var)
-  start = paste("~", var )
+  print(var)  
   dds <- DESeqDataSetFromMatrix(countData = cts,
                               colData = coldata,
-                              design = as.formula(paste(start, eq_cov, sep =" + ")))
+                              design = as.formula(paste("~", covar)))
   
+  # dds <- counts(dds, normalized=TRUE)
   dds <- DESeq(dds)
   res[var] = list(results(dds, alpha = p_value))
 }
-
-
+print('Finished....')
+print(Sys.time())
 
 ```
-12:32 (start) 
-13:26 (end)
+
 ### Select variable of interests
 
 ```{r, echo = FALSE}
 #saveRDS(res, file ="D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/res_AGE_MC23")
+
+path_out = "D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Result/3.1.deregulation/"
 
 top10iN32 = c()
 
@@ -175,6 +178,7 @@ for(var in varname){
   #Some values are NA: 
   signif$padj[is.na(signif$padj)] = 0.555555555555
   signif = signif[signif$padj < p_value,]
+
   
   #Select up-regulations
   upreg = signif
@@ -194,28 +198,40 @@ for(var in varname){
   tmp$cluster = var
   top10iN32 = rbind(top10iN32, tmp)
   
+  
   summary(res[[var]])
   summary(upreg)
   
+  data <- data.frame(Gene = rownames(tmp), baseMean = tmp$baseMean,
+                     log2 = tmp$log2FoldChange,
+                     P = tmp$pvalue, Padj = tmp$padj)
+
+  # Convert the data frame to a string format for the file
+  data_str <- apply(data, 1, function(row) paste(row, collapse = "\t"))
+  data_str <- paste(data_str, collapse = "\n")
+
+# Output of the datas
+  
+cat("-------------------------------\n",
+    " Cluster: \t",var, "\n",
+    "-------------------------------\n",
+    "Number of up-regulated genes:\t", nrow(upreg), "\n",
+    "Number of down-regulated genes:\t", nrow(signif) - nrow(upreg), "\n",
+    "-------------------------------\n",
+    
+    paste(colnames(data), collapse = "\t"), "\n", 
+    paste(data_str, collapse = "\n"),
+    file = paste0(path_out, var, '.txt', sep ="" ) )
+    
+  cairo_pdf(paste0(path_out, var, '.pdf', sep ="" ), onefile = T)
+  
+  hist(upreg$log2FoldChange, main = paste("log2FoldChange of", sep = " ", var))
   plotMA(res[[var]], main = paste("plotMA of", sep = " ", var))
-  plotMA(upreg, , main = paste("plotMA of up-regulated in", sep = " ", var))
+  plotMA(upreg, main = paste("plotMA of up-regulated in", sep = " ", var))
+   
+  dev.off()
+  
 }
 
 ```
 
-### Selection of the 10 most up-regulated genes
-
-```{r, echo = FALSE}
-
-top10iN32 = top10iN32[order(-top10iN32$log2FoldChange),]
-top10iN32$gene = rownames(top10iN32)
-
-top10 = c()
-top10 = rbind(top10, top10iN32[1, ])
-
-for (r in 2:nrow(top10iN32)){
- if(! (top10iN32[r, ]$gene %in% top10$gene)){
-   top10 = rbind(top10, top10iN32[r, ])
- }
-}
-```
