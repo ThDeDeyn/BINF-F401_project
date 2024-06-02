@@ -83,7 +83,10 @@ prepare_gmt = function(gmt, genes_in_data, savefile = FALSE){
 
 fgseaRes = c()
 
-for (var in names(res)){
+print('Starting....')
+print(Sys.time())
+
+for (var in names(res)[]){
   print(paste(var, ", ", which(names(res) == var), "/", length(names(res))))
   
 ### Step 1: Exporting the ranks required by fgsea
@@ -112,6 +115,7 @@ Genes_indices = match(rownames(result_ofCluster), RNA_kept$Name)
 Genes_ofCluster = result_ofCluster
 Genes_ofCluster$gene_code = rownames(Genes_ofCluster)
 rownames(Genes_ofCluster)[Genes_indices] = RNA_kept$Description[Genes_indices]
+Genes_ofCluster$gene_symbol = rownames(Genes_ofCluster)
     
 
 ### Step 3: Filter genes file
@@ -129,25 +133,53 @@ ranking = Genes_ofCluster$log2FoldChange
 names(ranking) = rownames(Genes_ofCluster)
 
 
-# Idea: replace inf values with finite. Safety nos usefull for us
+# Idea: replace inf values with finite. Safety not useful for us
 max_rk = max(ranking[is.finite(ranking)])
 min_rk = min(ranking[is.finite(ranking)])
 
 ranking = replace(ranking, ranking > max_rk, max_rk *10)
 ranking = replace(ranking, ranking < min_rk, min_rk *10)
 
-#plot(ranking)
-
 tmp = fgsea(pathways = pathways, 
                  stats = ranking, 
                  scoreType = 'pos', 
-                 minSize = 10,
+                 minSize = 5,
                  maxSize = 500, 
                  nproc = 1)
 
 fgseaRes[var] = list(tmp)
 
+  data <- data.frame(tmp)
+
+# Convert the data frame to a string format for the file
+  data_str <- apply(data, 1, function(row) paste(row, collapse = "\t"))
+  data_str <- paste(data_str, collapse = "\n")
+path_out = "D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Result/3.2.reactome/"
+
+cat("-------------------------------\n",
+    " Cluster: \t",var, "\n",
+    "-------------------------------\n",
+    "Number of up-regulated genes:\t", sum(tmp$padj < 0.05 & tmp$NES > 0), "\n",
+    "Number of down-regulated genes:\t", sum(tmp$padj < 0.05 & tmp$NES < 0), "\n",
+    "-------------------------------\n",
+    
+    paste(colnames(data), collapse = "\t"), "\n", 
+    paste(data_str, collapse = "\n"),
+    file = paste0(path_out, var, '.txt', sep ="" ) )
+
+plot = ggplot(tmp, aes(tmp$pathway, tmp$NES)) +
+  geom_col(aes(fill=tmp$padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title=paste0("Hallmark pathways NES from GSEA \n (", var,")", sep ="" )) + 
+  theme_minimal()
+
+print(plot)
+
 }
+
+print('Finished....')
+print(Sys.time())
 ```
 
 

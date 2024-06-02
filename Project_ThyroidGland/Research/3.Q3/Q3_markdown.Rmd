@@ -164,7 +164,7 @@ print(Sys.time())
 ### Select variable of interests
 
 ```{r, echo = FALSE}
-#saveRDS(res, file ="D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/res_AGE_MC23")
+saveRDS(res, file ="D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/res_MC23")
 
 path_out = "D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Result/3.1.deregulation/"
 
@@ -186,7 +186,7 @@ for(var in varname){
   upreg$pvalue[is.na(upreg$log2FoldChange)] = 0
   upreg = upreg[upreg$log2FoldChange > 0,]
   
-  hist(upreg$log2FoldChange, main = paste("log2FoldChange of", sep = " ", var))
+  # hist(upreg$log2FoldChange, main = paste("log2FoldChange of", sep = " ", var))
   
   # Order the dataframe, objective is to have the max values at the top
   max(upreg$log2FoldChange)
