@@ -1,7 +1,8 @@
 ---
-title: "BINF-F401"
-output: pdf_document
-date: "2024-04-25"
+title: "BINFF401"
+author: "Thomas De Deyn"
+output: html_document
+date: "`r Sys.Date()`"
 ---
 
 ```{r setup, include=FALSE}
@@ -134,7 +135,9 @@ all(colnames(cts) == rownames(coldata))
 #varname = c("Mophological.cluster.G4_0", "Mophological.cluster.G4_1" )
 varname = morphological_counts %>% select(-SMPLID) %>% colnames()
 
-covar = c("Mophological.cluster.G4_23", "AGE")
+covar = c("Mophological.cluster.G4_23")
+#G4_23 --> Muscle
+#G4_26 --> Peu de cellules, à utiliser? 
 
 eq_cov = paste0(covar, collapse = " + ")
 res = c()
@@ -215,5 +218,4 @@ for (r in 2:nrow(top10iN32)){
    top10 = rbind(top10, top10iN32[r, ])
  }
 }
-
 ```

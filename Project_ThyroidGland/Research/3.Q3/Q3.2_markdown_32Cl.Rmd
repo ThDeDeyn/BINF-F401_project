@@ -10,7 +10,9 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
 ```{r, echo = FALSE}
+
 library(tidyverse)
 library(fgsea)
 library(RColorBrewer)
@@ -51,36 +53,6 @@ coldata = coldata %>% left_join(by = "SMPLID", y = clinical)
 
 ```{r, echo = FALSE}
 
-var = names(res)[5]
-result_ofCluster = res[[var]]
-result_ofCluster = result_ofCluster[order(result_ofCluster$log2FoldChange, decreasing = TRUE),]
-result_ofCluster = result_ofCluster[ (result_ofCluster$padj < 0.05) ,]
-result_ofCluster = result_ofCluster[ (result_ofCluster$log2FoldChange > 0) ,]
-
-```
-### Step 2: Replace names
-
-```{r, echo = FALSE}
-
-RNA_kept = RNA_read[RNA_read$Name %in% rownames(result_ofCluster),]
-
-result_ofCluster = result_ofCluster[ (result_ofCluster$log2FoldChange > 0) ,]
-# Find matching names with gene ID
-Genes_indices = match(rownames(result_ofCluster), RNA_kept$Name)
-
-# Replace gene ID by gene name. 
-Genes_ofCluster = result_ofCluster
-Genes_ofCluster$gene_code = rownames(Genes_ofCluster)
-rownames(Genes_ofCluster)[Genes_indices] = RNA_kept$Description[Genes_indices]
-
-```
-### Step 3: Filter genes file
-
-```{r, echo = FALSE}
-# https://www.youtube.com/watch?v=itaZcIXZAwg&ab_channel=Biostatsquid
-
-#"Gene Set Enrichment Analysis (GSEA) with fgsea - easy R tutorial" YouTube, uploaded by Biostatsquid, 10 September 2023 
-
 matrix_to_list <- function(pws){
   pws.l <- list()
   for (pw in colnames(pws)) {
@@ -100,7 +72,7 @@ prepare_gmt = function(gmt, genes_in_data, savefile = FALSE){
   # Subset to the genes that are present in the DESEQ results
   hidden1 = intersect(genes_in_data, hidden)
   # Select pathways with at least 5 genes
-  mat = mat[hidden1, colnames(mat)[which(colSums(mat[hidden1,])> 5 )]]
+  mat = mat[hidden1, colnames(mat)[which(colSums(mat[hidden1,]) > 5 )]]
   
   final_list = matrix_to_list(mat)
   
@@ -108,13 +80,50 @@ prepare_gmt = function(gmt, genes_in_data, savefile = FALSE){
   return(final_list)
 }
 
+
+fgseaRes = c()
+
+for (var in names(res)){
+  print(paste(var, ", ", which(names(res) == var), "/", length(names(res))))
+  
+### Step 1: Exporting the ranks required by fgsea
+
+result_ofCluster = res[[var]]
+
+#remove NA: 
+NAs = apply(is.na(result_ofCluster), 1, any)
+if(length(which(NAs)) != 0){
+ result_ofCluster = result_ofCluster[!is.na(result_ofCluster$padj),]
+}
+
+result_ofCluster = result_ofCluster[order(result_ofCluster$log2FoldChange, decreasing = TRUE),]
+result_ofCluster = result_ofCluster[ (result_ofCluster$padj < 0.05) ,]
+result_ofCluster = result_ofCluster[ (result_ofCluster$log2FoldChange > 0) ,]
+
+### Step 2: Replace names
+
+RNA_kept = RNA_read[RNA_read$Name %in% rownames(result_ofCluster),]
+
+result_ofCluster = result_ofCluster[ (result_ofCluster$log2FoldChange > 0) ,]
+# Find matching names with gene ID
+Genes_indices = match(rownames(result_ofCluster), RNA_kept$Name)
+
+# Replace gene ID by gene name. 
+Genes_ofCluster = result_ofCluster
+Genes_ofCluster$gene_code = rownames(Genes_ofCluster)
+rownames(Genes_ofCluster)[Genes_indices] = RNA_kept$Description[Genes_indices]
+    
+
+### Step 3: Filter genes file
+# https://www.youtube.com/watch?v=itaZcIXZAwg&ab_channel=Biostatsquid
+
+#"Gene Set Enrichment Analysis (GSEA) with fgsea - easy R tutorial" YouTube, uploaded by Biostatsquid, 10 September 2023 
+
+
 pathways = prepare_gmt(reactome, Genes_ofCluster$gene_symbol)
 
-```
 
 ### Step 4: Prepare ranking list
-
-```{r, echo = FALSE}
 
 ranking = Genes_ofCluster$log2FoldChange
 names(ranking) = rownames(Genes_ofCluster)
@@ -127,33 +136,32 @@ min_rk = min(ranking[is.finite(ranking)])
 ranking = replace(ranking, ranking > max_rk, max_rk *10)
 ranking = replace(ranking, ranking < min_rk, min_rk *10)
 
-plot(ranking)
+#plot(ranking)
 
-```
-
-### Step 5: Run fgsea
-
-```{r, echo = FALSE}
-
-
-fgseaRes = fgsea(pathways = pathways, 
+tmp = fgsea(pathways = pathways, 
                  stats = ranking, 
                  scoreType = 'pos', 
                  minSize = 10,
                  maxSize = 500, 
                  nproc = 1)
 
+fgseaRes[var] = list(tmp)
 
+}
 ```
+
 
 
 ### Step 6: display results
 
 ```{r, echo = FALSE}
 
-View(head(fgseaRes[order(pval),]))
+var = names(res)[1]
+A = fgseaRes[var]
 
-sum(fgseaRes[,padj < 0.01])
-sum(fgseaRes[,pval < 0.01])
+View(head(A[order(pval),]))
+
+sum(A[,padj < p_value])
+sum(A[,pval < p_value])
 
 ```
