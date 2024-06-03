@@ -27,6 +27,7 @@ The task assigned was to study the RNA expression of a set of patients. First, l
 ```{r}
   p_value = .05
   discrete = 20
+  minSize = 5
 ```
 
 ## Morphology vs Reactome
@@ -72,7 +73,7 @@ prepare_gmt = function(gmt, genes_in_data, savefile = FALSE){
   # Subset to the genes that are present in the DESEQ results
   hidden1 = intersect(genes_in_data, hidden)
   # Select pathways with at least 5 genes
-  mat = mat[hidden1, colnames(mat)[which(colSums(mat[hidden1,]) > 5 )]]
+  mat = mat[hidden1, colnames(mat)[which(colSums(mat[hidden1,]) > minSize )]]
   
   final_list = matrix_to_list(mat)
   
@@ -100,7 +101,7 @@ if(length(which(NAs)) != 0){
 }
 
 result_ofCluster = result_ofCluster[order(result_ofCluster$log2FoldChange, decreasing = TRUE),]
-result_ofCluster = result_ofCluster[ (result_ofCluster$padj < 0.05) ,]
+result_ofCluster = result_ofCluster[ (result_ofCluster$padj < p_value) ,]
 result_ofCluster = result_ofCluster[ (result_ofCluster$log2FoldChange > 0) ,]
 
 ### Step 2: Replace names
@@ -143,7 +144,7 @@ ranking = replace(ranking, ranking < min_rk, min_rk *10)
 tmp = fgsea(pathways = pathways, 
                  stats = ranking, 
                  scoreType = 'pos', 
-                 minSize = 5,
+                 minSize = minSize,
                  maxSize = 500, 
                  nproc = 1)
 
