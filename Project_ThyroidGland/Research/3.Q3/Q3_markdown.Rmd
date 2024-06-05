@@ -144,13 +144,21 @@ covar = c("Mophological.cluster.G4_23")
 eq_cov = paste0(covar, collapse = " + ")
 res = c()
 
+  morphological_counts[[covar]] = scale(morphological_counts[[covar]])[,1]
+
 print('Starting....')
 print(Sys.time())
 for(var in varname){
   print(var)  
+  
+  # Scale morph data
+  
+  morphological_counts[[var]] = scale(morphological_counts[[var]])[,1]
+
+  
   dds <- DESeqDataSetFromMatrix(countData = cts,
-                              colData = coldata,
-                              design = as.formula(paste("~", covar)))
+                              colData = (morphological_counts),
+                              design = as.formula(paste("~",var,"+", covar)))
   
   # dds <- counts(dds, normalized=TRUE)
   dds <- DESeq(dds)
@@ -164,7 +172,7 @@ print(Sys.time())
 ### Select variable of interests
 
 ```{r, echo = FALSE}
-saveRDS(res, file ="D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/res_MC23")
+saveRDS(res, file ="D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/res_MC23_v2")
 
 path_out = "D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Result/3.1.deregulation/"
 
