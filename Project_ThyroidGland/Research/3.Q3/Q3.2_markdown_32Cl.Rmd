@@ -168,14 +168,56 @@ cat("-------------------------------\n",
     paste(data_str, collapse = "\n"),
     file = paste0(path_out, var, '.txt', sep ="" ) )
 
-plot = ggplot(tmp, aes(tmp$pathway, tmp$NES)) +
+  ggplot(tmp, aes(tmp$pathway, tmp$NES)) +
   geom_col(aes(fill=tmp$padj<0.05)) +
   coord_flip() +
   labs(x="Pathway", y="Normalized Enrichment Score",
        title=paste0("Hallmark pathways NES from GSEA \n (", var,")", sep ="" )) + 
   theme_minimal()
+  ggsave(paste0(path_out, var, '_NonAdjusted.pdf', sep ="" ))
 
-print(plot)
+  ggplot(tmp, aes(tmp$pathway, tmp$NES)) +
+  geom_col(aes(fill=tmp$padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title=paste0("Hallmark pathways NES from GSEA \n (", var,")", sep ="" )) + 
+  theme_minimal()
+  ggsave(paste0(path_out, var, '_Adjusted.pdf', sep ="" ))
+
+  ggplot(tmp, aes(x = pathway, y = NES, fill = padj)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0.05, limits = c(0, 1), name = "padj") +
+  labs(x = "Pathway", y = "Normalized Enrichment Score",
+       title = paste0("Hallmark pathways NES from GSEA \n (", var,")")) +
+  theme_minimal()
+  ggsave(paste0(path_out, var, '_continuous.pdf', sep ="" ))
+  
+  ########
+    ggplot(tmp, aes(tmp$pathway, tmp$NES)) +
+  geom_col(aes(fill=tmp$padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title=paste0("Hallmark pathways NES from GSEA \n (", var,")", sep ="" )) + 
+  theme_minimal()
+  ggsave(paste0(path_out,'/PNG/', var, '_NonAdjusted.png', sep ="" ))
+
+  ggplot(tmp, aes(tmp$pathway, tmp$NES)) +
+  geom_col(aes(fill=tmp$padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title=paste0("Hallmark pathways NES from GSEA \n (", var,")", sep ="" )) + 
+  theme_minimal()
+  ggsave(paste0(path_out,'/PNG/', var, '_Adjusted.png', sep ="" ))
+
+  ggplot(tmp, aes(x = pathway, y = NES, fill = padj)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0.05, limits = c(0, 1), name = "padj") +
+  labs(x = "Pathway", y = "Normalized Enrichment Score",
+       title = paste0("Hallmark pathways NES from GSEA \n (", var,")")) +
+  theme_minimal()
+  ggsave(paste0(path_out,'/PNG/', var, '_continuous.png', sep ="" ))
 
 }
 
