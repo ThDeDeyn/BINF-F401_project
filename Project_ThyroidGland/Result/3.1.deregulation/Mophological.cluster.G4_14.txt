@@ -1,8 +1,8 @@
 -------------------------------
   Cluster: 	 Mophological.cluster.G4_14 
  -------------------------------
- Number of up-regulated genes:	 1672 
- Number of down-regulated genes:	 1936 
+ Number of up-regulated genes:	 115 
+ Number of down-regulated genes:	 231 
  -------------------------------
  Gene	baseMean	log2	P	Padj 
  ENSG00000229344.1	  329.0403	0.7397204	3.056010e-28	4.538786e-24
