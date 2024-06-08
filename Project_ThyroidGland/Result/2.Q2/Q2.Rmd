@@ -1,0 +1,152 @@
+---
+title: "Q2 Functional Genomics"
+author: "Pierrot Van der Aa"
+date: "2024-04-01"
+output: pdf_document
+---
+
+```{r Load packages, echo=FALSE, , warning=FALSE, message=FALSE}
+library("readr")
+library("tidyr")
+library("dplyr")
+library("tidyverse")
+library("DESeq2")
+```
+
+```{r Set working directory, echo=FALSE}
+setwd(dir = "/home/pierrot/pCloudDrive/Mabisbis/Functional_Genomics/ThyroidGland/BINF-F401_project/Project_ThyroidGland")
+```
+We first load the morphological counts and check if every columns only contain numbers ("double").
+Then we load the clinical data. We replace the occurrences of 99 in the column DTHVNT by NA because that's what it means. We then take off patients with NA's because they are not handled further in the analyses. Given that there are only four of them, we can delete them without impacting too much the analysis. We turn SEX into a factor and scale the numerical clinical data (AGE, HGHT, WGHT and BMI). We apply similar procedure to technical features (i.e. factorising DTHVNT, COHORT and DTHHRDY and scaling TRISCHD).
+```{r Load data, message=FALSE}
+#Load morphological counts
+count_data <- as.data.frame(read_tsv("Data_ThyroidGland/OG/morphological_counts_lunit_dino.tsv"))
+sapply(count_data, typeof)
+#Load clinical data
+clinic_data <- as.data.frame(read_tsv("Data_ThyroidGland/OG/clinical_data.tsv"))
+colnames(clinic_data)
+#clinical data preprocessing
+clinic_data$SEX <- as.factor(clinic_data$SEX)
+clinic_data$AGE <- scale(clinic_data$AGE)
+clinic_data$HGHT <- scale(clinic_data$HGHT)
+clinic_data$WGHT <- scale(clinic_data$WGHT)
+clinic_data$BMI <- scale(clinic_data$BMI)
+#getting rid of the NA's
+clinic_data$DTHVNT <- replace(clinic_data$DTHVNT, clinic_data$DTHVNT == 99, NA) #replace the 99 by NA given that it is what it mean in a clinical sense
+sapply(clinic_data, function(x) which(is.na(x))) #see where are the NAs
+NAs_ID <- c(clinic_data$SMPLID[[196]], clinic_data$SMPLID[[219]], clinic_data$SMPLID[[239]], clinic_data$SMPLID[[260]]) #GETex IDs to remove
+count_data <- subset(count_data, !(count_data$SMPLID %in% NAs_ID)) #remove the four occurences of NA in the count dataset
+clinic_data <- drop_na(clinic_data) #remove the four occurences of NA in the clinic dataset
+#technical data preprocessing
+clinic_data$DTHVNT <- as.factor(clinic_data$DTHVNT)
+clinic_data$COHORT <- as.factor(clinic_data$COHORT)
+clinic_data$DTHHRDY <- as.factor(clinic_data$DTHHRDY)
+clinic_data$TRISCHD <- scale(clinic_data$TRISCHD)
+sapply(clinic_data, typeof)
+```
+
+This is a chunck to prepare the data to merge them into a DESeq object.
+```{r Preparation of the data for creating a DESeq object}
+# First we use the sample ID as rownames in the two dataframes
+count <- count_data[,-1]
+rownames(count) <- count_data[,1]
+clinic <- clinic_data[,-1]
+rownames(clinic) <- clinic_data[,1]
+# Then we make sure that all the rows are in the same order in both dataframes
+all(rownames(count) == rownames(clinic))
+# For the sake of the formula, we need to transpose the count data
+count <- t(count)
+```
+## Q2.1
+
+*Compute systematically associations between clinical variables and morphological cluster counts. The purpose is to compare the magnitude of the associations of the different variables with morphology.*
+
+For each clinical variable (age, sex, height, weight and BMI), we compute the association of the variable with the cluster count. So the association between a clinical variable and the morphology.
+```{r Compute the association for each clinical data, message=FALSE}
+health_names <- c("AGE", "SEX", "HGHT", "WGHT", "BMI")
+formul <- ''
+res <- ''
+for(param in health_names){
+  print(param)
+  formul <- as.formula(paste("~",param, sep = ""))
+  res <- paste("res", param, sep = "")
+  dds <-  DESeqDataSetFromMatrix(countData = count, colData = clinic, design = formul)
+  dds_res <- DESeq(dds)
+  assign(res, results(dds_res))
+}
+```
+The following plots show, in blue, the cluster which are up- or down-regulated. However, given that we talk about morphological cluster counts and not gene expression, the blue dot represent morphological clusters which present a significant correlation with the clinical variable. The closer a point is to the 0 log fold change line, the more likely is this point to have a non-significant interaction with the clinical variable.
+```{r MA plots, fig.show="hold", out.width="50%"}
+par(mar = c(4, 4, .1, .1))
+plotMA(resAGE)
+plotMA(resSEX)
+plotMA(resWGHT)
+plotMA(resBMI)
+plotMA(resHGHT)
+```
+On all the MA plots here above, we can observe that one cluster has much lower mean normalized counts value.
+```{r To which cluster does the low normalized count belong}
+resAGE[which.min(resAGE$baseMean),]
+resBMI[which.min(resBMI$baseMean),]
+resHGHT[which.min(resHGHT$baseMean),]
+resSEX[which.min(resSEX$baseMean),]
+resWGHT[which.min(resWGHT$baseMean),]
+```
+The code chunck here above allows to see that the morphological cluster concerned by this lower mean normalized count is always cluster G4_23. When we look at the pictures of that cluster on the morphological atlas, it appears that this cluster is made of portions of muscular tissue adjacent to the thyroid itself and does not display the purple coloration of the nuclei leading to a lower mean normalized count.
+
+## Q2.2
+
+*Discuss the association with technical variables.*
+
+**NB: I base my answer on the file description_ClinicalScale.docx**
+
+From Q1, we know that the following associations exist between clinical and technical variables.
+
+- for age, we have to correct for the ischemic time (TRISCHD), the presence of ventilator prior to death (c), the cohort (COHORT) and the type of death (DTHHRDY).
+- for BMI, we do not have to correct for technical variables.
+- for height, we have to correct for the cohort (COHORT) but we will consider that the mild correlation between height and ischemic time and between height and the presence of ventilator prior to death are not relevant enough to be included as confounding factors.
+- for sex, we do not have to correct for the effects of technical variables. Again, we will ignore the mild correlations with the ischemic time and the presence of ventilator prior to death.
+- for weight, we have to correct for the effect of the cohort (COHORT) but will neglect the mild correlation with the presence of a ventilator prior to death and the type of death.
+
+## Q2.3
+
+*For non-technical variables, redo the analysis with adjustment for the confounding technical variables, if any is reported in Q2.2. Report and discuss significant associations.*
+
+```{r Age, message=FALSE}
+formul <- as.formula("~AGE+TRISCHD+DTHVNT+COHORT+DTHHRDY")
+dds <-  DESeqDataSetFromMatrix(countData = count, colData = clinic, design = formul)
+dds_res <- DESeq(dds)
+resAGEcorr <- results(dds_res)
+plotMA(resAGEcorr)
+```
+There are no significant clusters anymore.
+
+
+```{r BMI}
+#formul <- as.formula("~BMI")
+resBMIcorr <- resBMI
+plotMA(resBMIcorr)
+```
+
+```{r Height, message=FALSE}
+formul <- as.formula("~HGHT+COHORT")
+dds <-  DESeqDataSetFromMatrix(countData = count, colData = clinic, design = formul)
+dds_res <- DESeq(dds)
+resHGHTcorr <- results(dds_res)
+plotMA(resHGHTcorr)
+```
+
+```{r Sex}
+#formul <- as.formula("~SEX")
+resSEXcorr <- resSEX
+plotMA(resSEXcorr)
+```
+
+```{r Weight, message=FALSE}
+formul <- as.formula("~WGHT+COHORT")
+dds <-  DESeqDataSetFromMatrix(countData = count, colData = clinic, design = formul)
+dds_res <- DESeq(dds)
+resWGHTcorr <- results(dds_res)
+plotMA(resWGHTcorr)
+```
+The MA plots haven't changed much except the one which relates the morphological cluster count to age. It seems that there is no correlation between the age and the morphological cluster count when we correct for technical variables.
