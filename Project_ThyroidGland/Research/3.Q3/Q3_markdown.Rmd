@@ -176,11 +176,12 @@ print(Sys.time())
 ### Select variable of interests
 
 ```{r, echo = FALSE}
-saveRDS(res, file ="D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/res_v3")
+#saveRDS(res, file ="D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/res_v3")
 
 path_out = "D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Result/3.1.deregulation/"
 
 top10iN32 = c()
+varname = names(res)
 
 for(var in varname){
   print(var)
@@ -188,14 +189,14 @@ for(var in varname){
   # Select significant regulations
   signif = res[[var]]
   #Some values are NA: 
-  signif$padj[is.na(signif$padj)] = 0.555555555555
+  signif$padj[is.na(signif$padj)] = 1
   signif = signif[signif$padj < p_value,]
 
   
   #Select up-regulations
   upreg = signif
   #Some values are NA: 
-  upreg$pvalue[is.na(upreg$log2FoldChange)] = 0
+  upreg$pvalue[is.na(upreg$log2FoldChange)] = 1
   upreg = upreg[upreg$log2FoldChange > 0,]
   
   # hist(upreg$log2FoldChange, main = paste("log2FoldChange of", sep = " ", var))
@@ -225,8 +226,10 @@ for(var in varname){
 cat("-------------------------------\n",
     " Cluster: \t",var, "\n",
     "-------------------------------\n",
-    "Number of up-regulated genes:\t", nrow(upreg), "\n",
-    "Number of down-regulated genes:\t", nrow(signif) - nrow(upreg), "\n",
+    "Number of up-regulated genes:\t", sum(res[[var]]$log2FoldChange > 0 &
+                                     res[[var]]$padj < 0.05, na.rm = TRUE), "\n",
+    "Number of down-regulated genes:\t", sum(res[[var]]$log2FoldChange < 0 &
+                                     res[[var]]$padj < 0.05, na.rm = TRUE), "\n",
     "-------------------------------\n",
     
     paste(colnames(data), collapse = "\t"), "\n", 

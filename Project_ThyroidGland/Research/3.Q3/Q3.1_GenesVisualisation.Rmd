@@ -46,10 +46,12 @@ data.res = data.frame(cluster = character(0), reg_status  = character(0),
 for(cluster in names(res)){
   up_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
                       reg_status  = "up-regulated",
-                      number = sum(res[[cluster]]$log2FoldChange > thr))
+                      number = sum(res[[cluster]]$log2FoldChange > thr  &
+                                     res[[cluster]]$padj < 0.05, na.rm = TRUE))
   down_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
                       reg_status  = "down-regulated",
-                      number = sum(res[[cluster]]$log2FoldChange < thr))
+                      number = sum(res[[cluster]]$log2FoldChange < thr &
+                                     res[[cluster]]$padj < 0.05, na.rm = TRUE))
 
   data.res = rbind(data.res, up_row)
   data.res = rbind(data.res, down_row)
@@ -62,10 +64,12 @@ data.res23 = data.frame(cluster = character(0), reg_status  = character(0),
 for(cluster in names(res23)){
   up_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
                       reg_status  = "up-regulated",
-                      number = sum(res23[[cluster]]$log2FoldChange > thr))
+                      number = sum(res23[[cluster]]$log2FoldChange > thr&
+                                     res23[[cluster]]$padj < 0.05, na.rm = TRUE))
   down_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
                       reg_status  = "down-regulated",
-                      number = sum(res23[[cluster]]$log2FoldChange < thr))
+                      number = sum(res23[[cluster]]$log2FoldChange < thr&
+                                     res23[[cluster]]$padj < 0.05, na.rm = TRUE))
 
   data.res23 = rbind(data.res23, up_row)
   data.res23 = rbind(data.res23, down_row)
@@ -92,6 +96,25 @@ ggplot(data.res, aes(x=fct_inorder(cluster), y=number, fill = reg_status)) +
 ggplot(data.res23, aes(x=fct_inorder(cluster), y=number, fill = reg_status)) +
   geom_bar(position = "fill", stat = "identity",color='black',width=0.9) +
   scale_y_continuous(labels = scales::percent) + 
+  xlab("Morphological cluster") + 
+  ylab("Regulation status") +
+  ggtitle("Repartition of up-regulated (log2FoldChange > 0), and down-regulated (log2FoldChange < 0) \n (with cluster23 considered as confounder)") + 
+  theme_minimal() + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(plot.title = element_text(size = 10, face = "bold"))
+
+
+ggplot(data.res, aes(x=fct_inorder(cluster), y=number, fill = reg_status)) +
+  geom_bar(position = "dodge", stat = "identity",color='black',width=0.9) +
+  xlab("Morphological cluster") + 
+  ylab("Regulation status") +
+  ggtitle("Repartition of up-regulated (log2FoldChange > 0), and down-regulated (log2FoldChange < 0)") + 
+  theme_minimal() + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(plot.title = element_text(size = 10, face = "bold"))
+
+ggplot(data.res23, aes(x=fct_inorder(cluster), y=number, fill = reg_status)) +
+  geom_bar(position = "dodge", stat = "identity",color='black',width=0.9) +
   xlab("Morphological cluster") + 
   ylab("Regulation status") +
   ggtitle("Repartition of up-regulated (log2FoldChange > 0), and down-regulated (log2FoldChange < 0) \n (with cluster23 considered as confounder)") + 
