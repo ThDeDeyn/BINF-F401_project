@@ -107,6 +107,9 @@ The objective of this second part is to determine how many genes are really up-r
 
 ```{r , echo=FALSE}
 thr = 1
+
+path_out = "D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Result/3.1.deregulation/"
+
 data.res = data.frame(cluster = character(0), reg_status  = character(0),
                       number = numeric(0))
 
@@ -127,6 +130,8 @@ for(cluster in names(res)){
   
 }
 
+write.csv(data.res, paste0(path_out,"data_barplots_thr1.csv" ))
+
 data.res23 = data.frame(cluster = character(0), reg_status  = character(0),
                       number = numeric(0))
 
@@ -146,10 +151,11 @@ for(cluster in names(res23)){
   
 }
 
+write.csv(data.res, paste0(path_out,"data_23_barplots_thr1.csv" ))
+
 ```
 
 ```{r , echo=FALSE}
-path_out = "D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Result/3.1.deregulation/"
 cairo_pdf(paste0(path_out, 'genes_regulation_thr100', '.pdf', sep ="" ), onefile = T)
 
 ggplot(data.res, aes(x= fct_inorder(cluster), y=number + 1, fill = reg_status)) +
