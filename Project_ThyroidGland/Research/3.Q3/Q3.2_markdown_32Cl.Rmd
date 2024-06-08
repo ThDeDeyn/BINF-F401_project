@@ -5,11 +5,9 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
 
 ```{r, echo = FALSE}
 
@@ -22,20 +20,19 @@ library(data.table)
 
 # BINF-F401 project (R Markdown)
 
-The task assigned was to study the RNA expression of a set of patients. First, let's set the parameters used throughout the scripts.
+The task assigned was to study the RNA expression in a set of samples First, let's set the parameters used throughout the scripts.
 
 ```{r}
-  p_value = .05
-  discrete = 20
-  minSize = 5
+  p_value = .05 # p-value threshold for statistic significance
+  minSize = 5   # minimum size to keep the pathway
 ```
 
 ## Morphology vs Reactome
 
 ### 1. Report:
 
--   The number of significant down-regulated and up-regulated genes associated with each morphological cluster
--   The 10 most significant up-regulated genes
+-   The number of significant down-regulated and up-regulated pathways associated with each morphological cluster
+-   The 10 most significant up-regulated pathways
 
 ```{r, echo = FALSE}
 morphological_counts = read_tsv("D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/morphological_counts_lunit_dino.tsv")
@@ -63,6 +60,8 @@ matrix_to_list <- function(pws){
 }
   
 prepare_gmt = function(gmt, genes_in_data, savefile = FALSE){
+
+#"Gene Set Enrichment Analysis (GSEA) with fgsea - easy R tutorial" YouTube, uploaded by Biostatsquid, 10 September 2023 
   hidden = unique(unlist(gmt))
   
   mat = matrix(NA, dimnames = list(hidden, names(gmt)), 
@@ -94,7 +93,7 @@ for (var in names(res)[]){
 
 result_ofCluster = res[[var]]
 
-#remove NA: 
+# filtering step, to remove potential NAs: 
 NAs = apply(is.na(result_ofCluster), 1, any)
 if(length(which(NAs)) != 0){
  result_ofCluster = result_ofCluster[!is.na(result_ofCluster$padj),]
@@ -104,7 +103,7 @@ result_ofCluster = result_ofCluster[order(result_ofCluster$log2FoldChange, decre
 result_ofCluster = result_ofCluster[ (result_ofCluster$padj < p_value) ,]
 result_ofCluster = result_ofCluster[ (result_ofCluster$log2FoldChange > 0) ,]
 
-### Step 2: Replace names
+### Step 2: Replace names (to matches the genes symbols used in reactome)
 
 RNA_kept = RNA_read[RNA_read$Name %in% rownames(result_ofCluster),]
 
@@ -120,10 +119,6 @@ Genes_ofCluster$gene_symbol = rownames(Genes_ofCluster)
     
 
 ### Step 3: Filter genes file
-# https://www.youtube.com/watch?v=itaZcIXZAwg&ab_channel=Biostatsquid
-
-#"Gene Set Enrichment Analysis (GSEA) with fgsea - easy R tutorial" YouTube, uploaded by Biostatsquid, 10 September 2023 
-
 
 pathways = prepare_gmt(reactome, Genes_ofCluster$gene_symbol)
 
@@ -157,6 +152,8 @@ fgseaRes[var] = list(tmp)
   data_str <- paste(data_str, collapse = "\n")
 path_out = "D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Result/3.2.reactome/"
 
+tmp <- tmp %>% filter(padj <= 0.20)
+
 cat("-------------------------------\n",
     " Cluster: \t",var, "\n",
     "-------------------------------\n",
@@ -187,14 +184,14 @@ cat("-------------------------------\n",
   ggplot(tmp, aes(x = pathway, y = NES, fill = padj)) +
   geom_col() +
   coord_flip() +
-  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0.05, limits = c(0, 1), name = "padj") +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0.05, limits = c(0, 0.2), name = "padj") +
   labs(x = "Pathway", y = "Normalized Enrichment Score",
        title = paste0("Hallmark pathways NES from GSEA \n (", var,")")) +
   theme_minimal()
   ggsave(paste0(path_out, var, '_continuous.pdf', sep ="" ))
   
   ########
-    ggplot(tmp, aes(tmp$pathway, tmp$NES)) +
+  ggplot(tmp, aes(tmp$pathway, tmp$NES)) +
   geom_col(aes(fill=tmp$padj<0.05)) +
   coord_flip() +
   labs(x="Pathway", y="Normalized Enrichment Score",
@@ -223,20 +220,4 @@ cat("-------------------------------\n",
 
 print('Finished....')
 print(Sys.time())
-```
-
-
-
-### Step 6: display results
-
-```{r, echo = FALSE}
-
-var = names(res)[1]
-A = fgseaRes[var]
-
-View(head(A[order(pval),]))
-
-sum(A[,padj < p_value])
-sum(A[,pval < p_value])
-
 ```

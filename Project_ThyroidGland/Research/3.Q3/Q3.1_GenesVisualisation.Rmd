@@ -1,0 +1,177 @@
+---
+title: "FG_histograms_reg"
+author: "Thomas De Deyn"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+### Loading libraries
+
+```{r, echo = FALSE}
+library(tidyverse)
+library(corrplot)
+library(grid)
+library(gridExtra)
+library(caret)
+library(backports)
+library(DESeq2)
+library(EBImage)
+library(ggplot2)
+```
+
+## Loading dfs
+
+```{r pressure, echo=FALSE}
+res = readRDS( file ="D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/res_v3")
+
+res23 = readRDS( file ="D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/res_MC23_v2")
+
+```
+
+The objective of this subsection is to determine how many genes are up-regulated and down-regulated. As a first way to observe the data, the separation will be made between genes having a log2FoldChange positive or negative.
+
+```{r , echo=FALSE}
+thr = 0
+data.res = data.frame(cluster = character(0), reg_status  = character(0),
+                      number = numeric(0))
+
+for(cluster in names(res)){
+  up_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
+                      reg_status  = "up-regulated",
+                      number = sum(res[[cluster]]$log2FoldChange > thr))
+  down_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
+                      reg_status  = "down-regulated",
+                      number = sum(res[[cluster]]$log2FoldChange < thr))
+
+  data.res = rbind(data.res, up_row)
+  data.res = rbind(data.res, down_row)
+  
+}
+
+data.res23 = data.frame(cluster = character(0), reg_status  = character(0),
+                      number = numeric(0))
+
+for(cluster in names(res23)){
+  up_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
+                      reg_status  = "up-regulated",
+                      number = sum(res23[[cluster]]$log2FoldChange > thr))
+  down_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
+                      reg_status  = "down-regulated",
+                      number = sum(res23[[cluster]]$log2FoldChange < thr))
+
+  data.res23 = rbind(data.res23, up_row)
+  data.res23 = rbind(data.res23, down_row)
+  
+}
+
+
+```
+
+```{r , echo=FALSE}
+path_out = "D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Result/3.1.deregulation/"
+cairo_pdf(paste0(path_out, 'genes_regulation_thr0', '.pdf', sep ="" ), onefile = T)
+
+ggplot(data.res, aes(x=fct_inorder(cluster), y=number, fill = reg_status)) +
+  geom_bar(position = "fill", stat = "identity",color='black',width=0.9) +
+  scale_y_continuous(labels = scales::percent) + 
+  xlab("Morphological cluster") + 
+  ylab("Regulation status") +
+  ggtitle("Repartition of up-regulated (log2FoldChange > 0), and down-regulated (log2FoldChange < 0)") + 
+  theme_minimal() + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(plot.title = element_text(size = 10, face = "bold"))
+
+ggplot(data.res23, aes(x=fct_inorder(cluster), y=number, fill = reg_status)) +
+  geom_bar(position = "fill", stat = "identity",color='black',width=0.9) +
+  scale_y_continuous(labels = scales::percent) + 
+  xlab("Morphological cluster") + 
+  ylab("Regulation status") +
+  ggtitle("Repartition of up-regulated (log2FoldChange > 0), and down-regulated (log2FoldChange < 0) \n (with cluster23 considered as confounder)") + 
+  theme_minimal() + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(plot.title = element_text(size = 10, face = "bold"))
+
+dev.off()
+
+```
+
+The objective of this second part is to determine how many genes are really up-regulated and down-regulated. To do so, a threshold is chosen for the Log2FoldChange. Two thresholds were tried: 0.75 and 1.
+
+```{r , echo=FALSE}
+thr = 1
+data.res = data.frame(cluster = character(0), reg_status  = character(0),
+                      number = numeric(0))
+
+for(cluster in names(res)){
+  up_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
+                      reg_status  = "up-regulated",
+                      number = sum(res[[cluster]]$log2FoldChange > thr))
+  down_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
+                      reg_status  = "down-regulated",
+                      number = sum(res[[cluster]]$log2FoldChange < -thr))
+  
+  not_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
+                      reg_status  = "not regulated",
+                      number = sum(res[[cluster]]$log2FoldChange < thr & res[[cluster]]$log2FoldChange > -thr))
+
+  data.res = rbind(data.res, up_row)
+  data.res = rbind(data.res, down_row)
+  
+}
+
+data.res23 = data.frame(cluster = character(0), reg_status  = character(0),
+                      number = numeric(0))
+
+for(cluster in names(res23)){
+  up_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
+                      reg_status  = "up-regulated",
+                      number = sum(res23[[cluster]]$log2FoldChange > thr))
+  down_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
+                      reg_status  = "down-regulated",
+                      number = sum(res23[[cluster]]$log2FoldChange < -thr))
+  not_row = data.frame(cluster = gsub("Mophological.cluster.", "", cluster),
+                      reg_status  = "not regulated",
+                      number = sum(res[[cluster]]$log2FoldChange < thr & res[[cluster]]$log2FoldChange > -thr))
+
+  data.res23 = rbind(data.res23, up_row)
+  data.res23 = rbind(data.res23, down_row)
+  
+}
+
+```
+
+```{r , echo=FALSE}
+path_out = "D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Result/3.1.deregulation/"
+cairo_pdf(paste0(path_out, 'genes_regulation_thr100', '.pdf', sep ="" ), onefile = T)
+
+ggplot(data.res, aes(x= fct_inorder(cluster), y=number + 1, fill = reg_status)) +
+  geom_bar(position = "dodge", stat = "identity",color='black',width=0.9) +
+  xlab("Morphological cluster") + 
+  ylab("Regulation status") +
+  ggtitle("Repartition of up-regulated (log2FoldChange > 1), and down-regulated (log2FoldChange < -1)") + 
+  theme_minimal() + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(plot.title = element_text(size = 9, face = "bold")) + 
+  scale_y_log10() 
+
+ggplot(data.res23, aes(x=fct_inorder(cluster), y=number + 1, fill = reg_status)) +
+  geom_bar(position = "dodge", stat = "identity",color='black',width=0.9) +
+  xlab("Morphological cluster") + 
+  ylab("Regulation status") +
+  ggtitle("Repartition of up-regulated (log2FoldChange > 1), and down-regulated (log2FoldChange < -1) \n (with cluster23 considered as confounder)") + 
+  theme_minimal() + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  theme(plot.title = element_text(size = 9, face = "bold")) + 
+  scale_y_log10()
+
+dev.off()
+
+```

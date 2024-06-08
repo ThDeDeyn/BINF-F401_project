@@ -1,0 +1,9 @@
+-------------------------------
+  Cluster: 	 Mophological.cluster.G4_27 
+ -------------------------------
+ Number of up-regulated genes:	 0 
+ Number of down-regulated genes:	 0 
+ -------------------------------
+ pathway	pval	padj	log2err	ES	NES	size	leadingEdge 
+ REACTOME_MUSCLE_CONTRACTION	0.101898101898102	0.101898101898102	0.135740943810425	0.4818256618181	1.53992136579328	9	c("ATP1A2", "NEB", "TTN", "PLN", "TPM2", "KCNIP2", "TNNT3")
+REACTOME_TRANSPORT_OF_SMALL_MOLECULES	0.050949050949051	0.101898101898102	0.197822021315103	0.570825414292157	1.71099798327964	7	c("ATP1A2", "ADD2", "PLN", "PRKAR2B", "LPL", "ABCC2")

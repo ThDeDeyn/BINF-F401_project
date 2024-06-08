@@ -26,8 +26,8 @@ library(EBImage)
 The task assigned was to study the RNA expression of a set of patients. First, let's set the parameters used throughout the scripts.
 
 ```{r}
-  p_value = .05
-  discrete = 20
+  p_value = .05  # p-value threshold for statistic significance
+  discrete = 20  # parameter used to determine the threshold by Otsu's algorithm
 ```
 
 ## Morphology vs Gene Expression
@@ -156,9 +156,13 @@ for(var in varname){
   morphological_counts[[var]] = scale(morphological_counts[[var]])[,1]
 
   
+  #dds <- DESeqDataSetFromMatrix(countData = cts,
+  #                            colData = (morphological_counts),
+  #                            design = as.formula(paste("~",var,"+", covar)))
+  
   dds <- DESeqDataSetFromMatrix(countData = cts,
                               colData = (morphological_counts),
-                              design = as.formula(paste("~",var,"+", covar)))
+                              design = as.formula(paste("~",var)))
   
   # dds <- counts(dds, normalized=TRUE)
   dds <- DESeq(dds)
@@ -172,7 +176,7 @@ print(Sys.time())
 ### Select variable of interests
 
 ```{r, echo = FALSE}
-saveRDS(res, file ="D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/res_MC23_v2")
+saveRDS(res, file ="D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Data_ThyroidGland/OG/res_v3")
 
 path_out = "D:/Polytech/MA2 2023-2024/Q2/Genomics/Project_ThyroidGland/Result/3.1.deregulation/"
 
@@ -199,8 +203,6 @@ for(var in varname){
   # Order the dataframe, objective is to have the max values at the top
   max(upreg$log2FoldChange)
   upreg = upreg[order(-upreg$log2FoldChange),]
-  
-  print("The ten most significant up-regulated genes are:")
   
   tmp = upreg[1:10,]
   tmp$cluster = var
