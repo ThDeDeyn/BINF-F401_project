@@ -29,7 +29,7 @@ p_value = .05
 
 clinical_class <- sapply(clinical_data, class)
 clinical_numeric =  clinical_data %>% select(where(is.numeric)) %>% colnames()
-path_out = "Result/Data_description"
+path_out = "Result/1.data_description"
 
 
 cairo_pdf(paste(path_out, "clinical_histograms.pdf", sep = "/"), onefile = T)
@@ -76,7 +76,7 @@ dev.off()
 
 highest_cor = cor
 # Keep high correlations
-highest_cor[abs(cor) < 0.2] = 0
+highest_cor[abs(cor) < 1] = 0
 
 # Keep significant correlations
 highest_cor[(Mtest$p) > 0.05] = 0
@@ -99,7 +99,7 @@ for(var.x in colnames(cor)){
                            p = cor.test(clinical_data[[var.x]], clinical_data[[var.y]],
                                      use = "pairwise.complete.obs")$p.value)
       
-      if(new_row$p < 0.05 & abs(new_row$cor) > 0.15){
+      if(new_row$p < 0.05 & abs(new_row$cor) > 0.1){
         cor_list = rbind(cor_list, new_row)
       }                  
     }
